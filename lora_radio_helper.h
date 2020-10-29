@@ -75,8 +75,8 @@ SX126X_LoRaRadio radio(MBED_CONF_APP_LORA_SPI_MOSI,
                        MBED_CONF_APP_LORA_RESET,
                        MBED_CONF_APP_LORA_DIO1,
                        MBED_CONF_APP_LORA_BUSY,
-                       MBED_CONF_APP_LORA_FREQ_SEL,
-                       MBED_CONF_APP_LORA_DEV_SEL,
+                       //MBED_CONF_APP_LORA_FREQ_SEL,
+                       //MBED_CONF_APP_LORA_DEV_SEL,
                        MBED_CONF_APP_LORA_XTAL_SEL,
                        MBED_CONF_APP_LORA_ANT_SWITCH);
 
