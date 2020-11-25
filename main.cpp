@@ -25,13 +25,23 @@
 #include "trace_helper.h"
 #include "lora_radio_helper.h"
 
-using namespace events;
+#include "BMP280.h"
 
+using namespace events;
+f
 // Max payload size can be LORAMAC_PHY_MAXPAYLOAD.
 // This example only communicates with much shorter messages (<30 bytes).
-// If longer messages are used, these buffers must be changed accordingly.
+// If longer messages are used, these buffers must be changed accordingly.f
 uint8_t tx_buffer[30];
 uint8_t rx_buffer[30];
+
+/*
+lorawan_connect_t dev;
+
+MBED_CONF_LORA_DEVICE_EUI
+*/
+
+//?????
 
 /*
  * Sets up an application dependent transmission timer in ms. Used only when Duty Cycling is off for testing
@@ -87,11 +97,37 @@ static LoRaWANInterface lorawan(radio);
  */
 static lorawan_app_callbacks_t callbacks;
 
+
+    
+    I2C _i2c(I2C_SDA, I2C_SCL);
+    //create bmp280 sensor object
+    BMP280 bmp280(_i2c);
+
+
 /**
  * Entry point for application
  */
 int main(void)
-{
+{   
+
+    //FOR FEATHER ONLY MUST ENABLE LORA REGULATOR (GPIO 24)
+/*
+    mbed::DigitalOut loraEN(D24);
+
+    loraEN = 1;
+
+    //Wait a sec for lora enable
+    rtos::ThisThread::sleep_for(50);
+*/
+
+
+    
+
+      //Initialize bmp 280
+    bmp280.initialize();
+    printf("BMP 280 Initialization done\n");
+
+
     // setup tracing
     setup_trace();
 
@@ -117,7 +153,7 @@ int main(void)
         return -1;
     }
 
-    printf("\r\n CONFIRMED message retries : %d \r\n",
+    printf("\r\n CONFIRMED message retries : %d \r\n",  
            CONFIRMED_MSG_RETRY_COUNTER);
 
     // Enable adaptive data rate
@@ -139,6 +175,7 @@ int main(void)
 
     printf("\r\n Connection - In Progress ...\r\n");
 
+
     // make your event queue dispatching events forever
     ev_queue.dispatch_forever();
 
@@ -154,18 +191,26 @@ static void send_message()
     int16_t retcode;
     int32_t sensor_value;
 
+    float pressure;
+
     if (ds1820.begin()) {
         ds1820.startConversion();
-        sensor_value = ds1820.read();
-        printf("\r\n Dummy Sensor Value = %d \r\n", sensor_value);
-        ds1820.startConversion();
+        //sensor_value = ds1820.read();
+        pressure = bmp280.getPressure();
+        printf("\r\n Atmospheric Pressure = %0.02f \r\n", pressure);
+        printf(" Temp is %0.02f",bmp280.getTemperature());
+       // ds1820.startConversion();
     } else {
         printf("\r\n No sensor found \r\n");
         return;
     }
 
+    /*
     packet_len = sprintf((char *) tx_buffer, "Dummy Sensor Value is %d",
                          sensor_value);
+    */
+    packet_len = sprintf((char *) tx_buffer, "Pressure is %0.02f",
+                         pressure);
 
     retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, tx_buffer, packet_len,
                            MSG_UNCONFIRMED_FLAG);
