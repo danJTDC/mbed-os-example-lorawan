@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 #include <stdio.h>
+#include "mbed.h"
 
 #include "lorawan/LoRaWANInterface.h"
 #include "lorawan/system/lorawan_data_structures.h"
@@ -28,20 +29,13 @@
 #include "BMP280.h"
 
 using namespace events;
-f
+
 // Max payload size can be LORAMAC_PHY_MAXPAYLOAD.
 // This example only communicates with much shorter messages (<30 bytes).
-// If longer messages are used, these buffers must be changed accordingly.f
+// If longer messages are used, these buffers must be changed accordingly.
 uint8_t tx_buffer[30];
 uint8_t rx_buffer[30];
 
-/*
-lorawan_connect_t dev;
-
-MBED_CONF_LORA_DEVICE_EUI
-*/
-
-//?????
 
 /*
  * Sets up an application dependent transmission timer in ms. Used only when Duty Cycling is off for testing
@@ -99,16 +93,28 @@ static lorawan_app_callbacks_t callbacks;
 
 
     
-    I2C _i2c(I2C_SDA, I2C_SCL);
+    //I2C _i2c(I2C_SDA, I2C_SCL);
     //create bmp280 sensor object
-    BMP280 bmp280(_i2c);
+    //BMP280 bmp280(_i2c);
 
+void send_buttonPress();
+
+void buttonISR(){
+
+    ev_queue.call_in(500ms, send_buttonPress);
+
+}
 
 /**
  * Entry point for application
  */
 int main(void)
 {   
+
+    InterruptIn button(D10);
+
+    button.fall(buttonISR);
+
 
     //FOR FEATHER ONLY MUST ENABLE LORA REGULATOR (GPIO 24)
 /*
@@ -124,10 +130,10 @@ int main(void)
     
 
       //Initialize bmp 280
-    bmp280.initialize();
-    printf("BMP 280 Initialization done\n");
+    //bmp280.initialize();
+    //printf("BMP 280 Initialization done\n");
 
-
+    //printf("TEST\n");
     // setup tracing
     setup_trace();
 
@@ -182,6 +188,37 @@ int main(void)
     return 0;
 }
 
+void send_buttonPress(){
+
+    uint16_t packet_len;
+    int16_t retcode;
+    
+
+    
+    packet_len = sprintf((char *) tx_buffer, "Button was pressed");
+    
+
+    retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, tx_buffer, packet_len,
+                           MSG_UNCONFIRMED_FLAG);
+
+    if (retcode < 0) {
+        retcode == LORAWAN_STATUS_WOULD_BLOCK ? printf("send - WOULD BLOCK\r\n")
+        : printf("\r\n send() - Error code %d \r\n", retcode);
+
+        if (retcode == LORAWAN_STATUS_WOULD_BLOCK) {
+            //retry in 3 seconds
+            if (MBED_CONF_LORA_DUTY_CYCLE_ON) {
+                ev_queue.call_in(3000, send_buttonPress);
+            }
+        }
+        return;
+    }
+
+    printf("\r\n %d bytes scheduled for transmission \r\n", retcode);
+    memset(tx_buffer, 0, sizeof(tx_buffer));
+
+}
+
 /**
  * Sends a message to the Network Server
  */
@@ -195,23 +232,23 @@ static void send_message()
 
     if (ds1820.begin()) {
         ds1820.startConversion();
-        //sensor_value = ds1820.read();
-        pressure = bmp280.getPressure();
-        printf("\r\n Atmospheric Pressure = %0.02f \r\n", pressure);
-        printf(" Temp is %0.02f",bmp280.getTemperature());
-       // ds1820.startConversion();
+        sensor_value = ds1820.read();
+        //pressure = bmp280.getPressure();
+       // printf("\r\n Atmospheric Pressure = %0.02f \r\n", pressure);
+        //printf(" Temp is %0.02f",bmp280.getTemperature());
+       ds1820.startConversion();
     } else {
         printf("\r\n No sensor found \r\n");
         return;
     }
 
-    /*
+    
     packet_len = sprintf((char *) tx_buffer, "Dummy Sensor Value is %d",
                          sensor_value);
-    */
+    /*
     packet_len = sprintf((char *) tx_buffer, "Pressure is %0.02f",
                          pressure);
-
+    */
     retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, tx_buffer, packet_len,
                            MSG_UNCONFIRMED_FLAG);
 
