@@ -111,9 +111,9 @@ void buttonISR(){
 int main(void)
 {   
 
-    InterruptIn button(D10);
+    //InterruptIn button(D10);
 
-    button.fall(buttonISR);
+    //button.fall(buttonISR);
 
 
     //FOR FEATHER ONLY MUST ENABLE LORA REGULATOR (GPIO 24)
