@@ -26,7 +26,7 @@
 #include "trace_helper.h"
 #include "lora_radio_helper.h"
 
-#include "BMP280.h"
+//#include "BMP280.h"
 
 using namespace events;
 
